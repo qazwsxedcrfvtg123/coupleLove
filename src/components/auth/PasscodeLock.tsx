@@ -50,14 +50,15 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({
   useEffect(() => {
     if (pin.length === 6) {
       if (pin === correctPasscode) {
-        // 密碼正確：觸發愛心撒花並解鎖
+        // 密碼正確：觸發愛心撒花並解鎖 (使用 sessionStorage，關閉網頁/分頁後即自動失效需重輸)
         confetti({
           particleCount: 80,
           spread: 60,
           origin: { y: 0.6 },
           colors: ['#f43f5e', '#fb7185', '#fda4af', '#ffffff'],
         });
-        localStorage.setItem('couple_app_unlocked', 'true');
+        sessionStorage.setItem('couple_app_unlocked', 'true');
+        localStorage.removeItem('couple_app_unlocked'); // 清除舊有的永久快取
         setTimeout(() => {
           onUnlock();
         }, 300);

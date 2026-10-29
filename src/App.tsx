@@ -10,9 +10,11 @@ import { PasscodeLock } from './components/auth/PasscodeLock';
 import { Heart, Calendar, Gift, Sparkles, Plus, Lock } from 'lucide-react';
 
 export const App: React.FC = () => {
-  // 6 位專屬愛情密碼驗證狀態
+  // 6 位專屬愛情密碼驗證狀態 (使用 sessionStorage：只要關掉網頁/分頁，重新進入就必須重新輸入密碼)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('couple_app_unlocked') === 'true';
+    // 清除舊有的永久 localStorage 紀錄
+    localStorage.removeItem('couple_app_unlocked');
+    return sessionStorage.getItem('couple_app_unlocked') === 'true';
   });
 
   const [activeTab, setActiveTab] = useState<'wishes' | 'anniversaries' | 'surprise'>('wishes');
@@ -159,6 +161,7 @@ export const App: React.FC = () => {
           {/* 鎖定按鈕：隨時可一鍵鎖定保護隱私 */}
           <button
             onClick={() => {
+              sessionStorage.removeItem('couple_app_unlocked');
               localStorage.removeItem('couple_app_unlocked');
               setIsAuthenticated(false);
             }}
