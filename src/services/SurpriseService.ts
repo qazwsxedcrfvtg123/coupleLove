@@ -9,7 +9,7 @@ const DEFAULT_SURPRISES: Surprise[] = [
     id: 'surprise-1',
     title: '專屬給妳的生日告白影片 🎥🎁',
     unlockAt: getFutureTime(30), // 30 秒後可解鎖
-    mediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    mediaUrl: 'https://www.youtube.com/watch?v=aXGMt-UNfOI&list=RDaXGMt-UNfOI&start_radio=1&pp=ygUW5oiR5aW95Zac5q2h5aazIOWFreaKmKAHAQ%3D%3D',
     isUnlocked: false,
   },
 ];
@@ -22,7 +22,7 @@ export class SurpriseService {
       'surprises',
       DEFAULT_SURPRISES
     )
-  ) {}
+  ) { }
 
   async getSurprises(): Promise<Surprise[]> {
     return this.adapter.getAll();
@@ -30,7 +30,30 @@ export class SurpriseService {
 
   async getActiveSurprise(): Promise<Surprise | null> {
     const list = await this.adapter.getAll();
-    return list[0] || null;
+    const item = list[0];
+
+    // 如果資料庫中還是舊的預設測試影片 (BigBuckBunny) 或與 DEFAULT_SURPRISES 不同，自動更新至資料庫
+    if (
+      item &&
+      DEFAULT_SURPRISES[0] &&
+      item.mediaUrl !== DEFAULT_SURPRISES[0].mediaUrl &&
+      (item.mediaUrl?.includes('BigBuckBunny') || item.id === 'surprise-1')
+    ) {
+      try {
+        const updated = await this.adapter.update(item.id, {
+          mediaUrl: DEFAULT_SURPRISES[0].mediaUrl,
+        });
+        return updated;
+      } catch (e) {
+        console.warn('[SurpriseService] 自動同步 mediaUrl 失敗:', e);
+      }
+    }
+
+    return item || null;
+  }
+
+  async updateSurprise(id: string, partial: Partial<Surprise>): Promise<Surprise> {
+    return this.adapter.update(id, partial);
   }
 
   isReadyToUnlock(surprise: Surprise): boolean {

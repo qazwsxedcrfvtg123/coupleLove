@@ -6,9 +6,15 @@ import { surpriseService } from './services/SurpriseService';
 import { WishCard } from './components/wish/WishCard';
 import { AnniversaryCard } from './components/anniversary/AnniversaryCard';
 import { SurpriseUnlockModal } from './components/surprise/SurpriseUnlockModal';
-import { Heart, Calendar, Gift, Sparkles, Plus } from 'lucide-react';
+import { PasscodeLock } from './components/auth/PasscodeLock';
+import { Heart, Calendar, Gift, Sparkles, Plus, Lock } from 'lucide-react';
 
 export const App: React.FC = () => {
+  // 6 位專屬愛情密碼驗證狀態
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('couple_app_unlocked') === 'true';
+  });
+
   const [activeTab, setActiveTab] = useState<'wishes' | 'anniversaries' | 'surprise'>('wishes');
 
   // 狀態管理
@@ -117,6 +123,19 @@ export const App: React.FC = () => {
     loadData();
   };
 
+  // 若尚未輸入專屬密碼解鎖，顯示 6 位數字鎖定畫面
+  if (!isAuthenticated) {
+    return (
+      <PasscodeLock
+        correctPasscode="130723"
+        onUnlock={() => {
+          setIsAuthenticated(true);
+          loadData();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="max-w-md mx-auto min-h-screen bg-rose-50/40 pb-28 pt-4 px-4 flex flex-col">
       {/* 頂部品牌 Header */}
@@ -131,9 +150,23 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-rose-100 text-rose-600 text-xs font-semibold shadow-xs">
-          <Sparkles className="w-3.5 h-3.5 text-rose-500" />
-          <span>相戀中</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-rose-100 text-rose-600 text-xs font-semibold shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+            <span>相戀中</span>
+          </div>
+
+          {/* 鎖定按鈕：隨時可一鍵鎖定保護隱私 */}
+          <button
+            onClick={() => {
+              localStorage.removeItem('couple_app_unlocked');
+              setIsAuthenticated(false);
+            }}
+            className="p-1.5 rounded-full bg-white/80 border border-stone-200 text-stone-400 hover:text-rose-500 hover:border-rose-200 transition-all shadow-xs active:scale-95"
+            title="手動鎖定專屬空間"
+          >
+            <Lock className="w-3.5 h-3.5" />
+          </button>
         </div>
       </header>
 
