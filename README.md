@@ -76,15 +76,19 @@ create table if not exists anniversaries (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- 2. 許願池資料表
+-- 2. 許願池資料表 (支援 5 天自動過期清理)
 create table if not exists wishes (
   id text primary key,
   title text not null,
   category text not null,
   status text not null default 'DRAFT',
   "isSecretPreparing" boolean default false,
-  "createdAt" text not null
+  "createdAt" text not null,
+  "fulfilledAt" text
 );
+
+-- 若舊表已存在，可直接執行此行補充欄位：
+-- alter table wishes add column if not exists "fulfilledAt" text;
 
 -- 3. 驚喜模組資料表
 create table if not exists surprises (
@@ -103,6 +107,21 @@ alter table surprises enable row level security;
 create policy "Allow all operations for anniversaries" on anniversaries for all using (true) with check (true);
 create policy "Allow all operations for wishes" on wishes for all using (true) with check (true);
 create policy "Allow all operations for surprises" on surprises for all using (true) with check (true);
+
+-- 4.【可選】Supabase pg_cron 雲端 5 天定時刪除任務 (即使沒開網頁，雲端也會每日自動清理)
+-- 啟用 pg_cron 擴展
+create extension if not exists pg_cron;
+
+-- 設定定時任務：每天凌晨自動刪除「已實現 (FULFILLED)」超過 5 天的心願
+select cron.schedule(
+  'auto-delete-fulfilled-wishes-5d',
+  '0 0 * * *',
+  $$
+    delete from wishes 
+    where status = 'FULFILLED' 
+      and coalesce("fulfilledAt", "createdAt")::timestamptz <= now() - interval '5 days';
+  $$
+);
 ```
 
 ---

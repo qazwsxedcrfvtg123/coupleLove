@@ -11,6 +11,7 @@ export interface Wish {
   status: WishStatus;
   isSecretPreparing: boolean; // 悄悄準備中標記
   createdAt: string; // ISO 8601
+  fulfilledAt?: string; // 實現完成時間 (ISO 8601)，用於滿 5 天定時自動刪除
 }
 
 // 紀念日與倒數日

@@ -40,6 +40,11 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    // 定時排程：每 5 分鐘自動刷新與執行過期心願清理
+    const timer = setInterval(() => {
+      loadData();
+    }, 5 * 60 * 1000);
+    return () => clearInterval(timer);
   }, [selectedCategory, selectedStatus]);
 
   // 願望互動處理
@@ -50,6 +55,11 @@ export const App: React.FC = () => {
 
   const handleUpdateStatus = async (id: string, status: WishStatus) => {
     await wishService.updateStatus(id, status);
+    loadData();
+  };
+
+  const handleDeleteWish = async (id: string) => {
+    await wishService.deleteWish(id);
     loadData();
   };
 
@@ -116,7 +126,7 @@ export const App: React.FC = () => {
             <Heart className="w-5 h-5 text-white fill-white" />
           </div>
           <div>
-            <h1 className="text-lg font-black tracking-tight text-stone-800">Our Story</h1>
+            <h1 className="text-lg font-black tracking-tight text-stone-800">U&S Story</h1>
             <p className="text-[10px] text-stone-400">專屬於我們的浪漫點滴</p>
           </div>
         </div>
@@ -139,11 +149,10 @@ export const App: React.FC = () => {
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
-                      selectedCategory === cat
+                    className={`px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${selectedCategory === cat
                         ? 'bg-rose-500 text-white shadow-xs'
                         : 'bg-white/80 text-stone-600 hover:bg-white'
-                    }`}
+                      }`}
                   >
                     {cat === 'ALL' ? '全部' : cat === 'FOOD' ? '美食' : cat === 'TRAVEL' ? '景點' : cat === 'MOVIE' ? '電影' : '日常'}
                   </button>
@@ -213,6 +222,7 @@ export const App: React.FC = () => {
                     wish={wish}
                     onToggleSecret={handleToggleSecret}
                     onUpdateStatus={handleUpdateStatus}
+                    onDelete={handleDeleteWish}
                   />
                 ))
               )}
@@ -363,11 +373,10 @@ export const App: React.FC = () => {
       <nav className="fixed bottom-3 left-4 right-4 max-w-md mx-auto bg-white/90 backdrop-blur-xl border border-stone-100 rounded-3xl p-1.5 shadow-2xl flex items-center justify-around z-40">
         <button
           onClick={() => setActiveTab('wishes')}
-          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all ${
-            activeTab === 'wishes'
+          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all ${activeTab === 'wishes'
               ? 'text-rose-500 bg-rose-50 font-bold'
               : 'text-stone-400 hover:text-stone-600'
-          }`}
+            }`}
         >
           <Heart className={`w-5 h-5 ${activeTab === 'wishes' ? 'fill-current' : ''}`} />
           <span className="text-[10px]">願望池</span>
@@ -375,11 +384,10 @@ export const App: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('anniversaries')}
-          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all ${
-            activeTab === 'anniversaries'
+          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all ${activeTab === 'anniversaries'
               ? 'text-rose-500 bg-rose-50 font-bold'
               : 'text-stone-400 hover:text-stone-600'
-          }`}
+            }`}
         >
           <Calendar className="w-5 h-5" />
           <span className="text-[10px]">紀念日</span>
@@ -387,11 +395,10 @@ export const App: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('surprise')}
-          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all ${
-            activeTab === 'surprise'
+          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all ${activeTab === 'surprise'
               ? 'text-rose-500 bg-rose-50 font-bold'
               : 'text-stone-400 hover:text-stone-600'
-          }`}
+            }`}
         >
           <Gift className={`w-5 h-5 ${activeTab === 'surprise' ? 'fill-rose-500' : ''}`} />
           <span className="text-[10px]">專屬驚喜</span>

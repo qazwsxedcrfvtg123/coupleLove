@@ -25,6 +25,7 @@ const DEFAULT_WISHES: Wish[] = [
     status: 'FULFILLED',
     isSecretPreparing: false,
     createdAt: new Date().toISOString(),
+    fulfilledAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -34,6 +35,11 @@ export class WishService {
   constructor(private adapter: IStorageAdapter<Wish> = createStorageAdapter<Wish>('wishes', DEFAULT_WISHES)) {}
 
   async getWishes(filter?: { category?: WishCategory | 'ALL'; status?: WishStatus | 'ALL' }): Promise<Wish[]> {
+    // 每次載入時自動清理已實現超過 5 天的心願
+    await this.cleanupFulfilledWishes(5).catch((err) =>
+      console.warn('[WishService] 自動清理過期已實現願望時發生提示:', err)
+    );
+
     const all = await this.adapter.getAll();
     return all.filter((w) => {
       if (filter?.category && filter.category !== 'ALL' && w.category !== filter.category) {
@@ -72,7 +78,39 @@ export class WishService {
   }
 
   async updateStatus(id: string, status: WishStatus): Promise<Wish> {
-    return this.adapter.update(id, { status });
+    const partial: Partial<Wish> = { status };
+    if (status === 'FULFILLED') {
+      // 標記實現時間，啟動 5 天過期倒數
+      partial.fulfilledAt = new Date().toISOString();
+    } else {
+      // 若重新發起願望，清除實現時間
+      partial.fulfilledAt = undefined;
+    }
+    return this.adapter.update(id, partial);
+  }
+
+  /**
+   * 清理已實現超過 retentionDays 天數的心願 (預設 5 天)
+   * 同時支援 Supabase 與 LocalStorage
+   */
+  async cleanupFulfilledWishes(retentionDays: number = 5): Promise<number> {
+    const all = await this.adapter.getAll();
+    const now = Date.now();
+    const thresholdMs = retentionDays * 24 * 60 * 60 * 1000;
+
+    const expiredWishes = all.filter((w) => {
+      if (w.status !== 'FULFILLED') return false;
+      const targetTimeStr = w.fulfilledAt || w.createdAt;
+      if (!targetTimeStr) return false;
+      const timeMs = new Date(targetTimeStr).getTime();
+      return now - timeMs >= thresholdMs;
+    });
+
+    if (expiredWishes.length > 0) {
+      await Promise.all(expiredWishes.map((w) => this.adapter.delete(w.id)));
+    }
+
+    return expiredWishes.length;
   }
 
   async deleteWish(id: string): Promise<void> {

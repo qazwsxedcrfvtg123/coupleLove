@@ -1,12 +1,30 @@
 import React from 'react';
 import { Wish, WishStatus } from '../../types';
-import { Sparkles, Heart, CheckCircle2, Clock } from 'lucide-react';
+import { Sparkles, Heart, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 
 interface WishCardProps {
   wish: Wish;
   onToggleSecret: (id: string) => void;
   onUpdateStatus: (id: string, status: WishStatus) => void;
+  onDelete?: (id: string) => void;
 }
+
+const getFulfilledRetentionText = (fulfilledAt?: string, createdAt?: string, days = 5): string => {
+  const targetTimeStr = fulfilledAt || createdAt;
+  if (!targetTimeStr) return `${days}天後清除`;
+  const fulfilledMs = new Date(targetTimeStr).getTime();
+  const expireMs = fulfilledMs + days * 24 * 60 * 60 * 1000;
+  const diffMs = expireMs - Date.now();
+
+  if (diffMs <= 0) return '即將自動清除';
+  const remDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  const remHours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+
+  if (remDays >= 1) {
+    return `${remDays} 天後自動清除`;
+  }
+  return `${Math.max(1, remHours)} 小時後自動清除`;
+};
 
 const CATEGORY_MAP: Record<string, { label: string; color: string }> = {
   FOOD: { label: '美食探索', color: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -22,7 +40,12 @@ const STATUS_LABELS: Record<WishStatus, { label: string; badge: string }> = {
   FULFILLED: { label: '已完成 💖', badge: 'bg-green-50 text-green-700 font-medium' },
 };
 
-export const WishCard: React.FC<WishCardProps> = ({ wish, onToggleSecret, onUpdateStatus }) => {
+export const WishCard: React.FC<WishCardProps> = ({
+  wish,
+  onToggleSecret,
+  onUpdateStatus,
+  onDelete,
+}) => {
   const categoryInfo = CATEGORY_MAP[wish.category] || {
     label: wish.category,
     color: 'bg-stone-50 text-stone-600 border-stone-200',
@@ -45,9 +68,17 @@ export const WishCard: React.FC<WishCardProps> = ({ wish, onToggleSecret, onUpda
         <span className={`px-2.5 py-0.5 text-xs rounded-full border font-medium ${categoryInfo.color}`}>
           {categoryInfo.label}
         </span>
-        <span className={`px-2.5 py-0.5 text-xs rounded-full ${statusInfo.badge}`}>
-          {statusInfo.label}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {wish.status === 'FULFILLED' && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-stone-500 bg-stone-100/90 px-2 py-0.5 rounded-full font-normal">
+              <Clock className="w-3 h-3 text-stone-400" />
+              {getFulfilledRetentionText(wish.fulfilledAt, wish.createdAt, 5)}
+            </span>
+          )}
+          <span className={`px-2.5 py-0.5 text-xs rounded-full ${statusInfo.badge}`}>
+            {statusInfo.label}
+          </span>
+        </div>
       </div>
 
       {/* 願望標題 */}
@@ -92,13 +123,26 @@ export const WishCard: React.FC<WishCardProps> = ({ wish, onToggleSecret, onUpda
               實現
             </button>
           ) : (
-            <button
-              onClick={() => onUpdateStatus(wish.id, 'PUBLISHED')}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-stone-400 hover:text-stone-600"
-            >
-              <Clock className="w-3.5 h-3.5" />
-              重啟
-            </button>
+            <>
+              <button
+                onClick={() => onUpdateStatus(wish.id, 'PUBLISHED')}
+                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-colors"
+                title="重啟心願"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                重啟
+              </button>
+              {onDelete && (
+                <button
+                  onClick={() => onDelete(wish.id)}
+                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  title="立即刪除"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  刪除
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
